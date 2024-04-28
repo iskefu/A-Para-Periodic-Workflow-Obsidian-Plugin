@@ -1,0 +1,10 @@
+{
+	"id": "a-para-periodic-workflow",
+	"name": "A PARA Periodic Workflow",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "This is a PARA and Periodic Workflow  plugin for Obsidian.",
+	"author": "Luckin Cafe",
+	"authorUrl": "https://github.com/iskefu/PARA-Periodic-Workflow",
+	"isDesktopOnly": false
+}

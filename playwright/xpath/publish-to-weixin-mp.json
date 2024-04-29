@@ -1,0 +1,10 @@
+{
+    "url":"https://mp.weixin.qq.com/",
+    "pic_paper_news":"//div[contains(text(),'图文消息')]/../..",
+    "upload_doc":"//li[@id='js_import_file']",
+    "input_file":"//div[@class='weui-desktop-upload']//input[@type='file']",
+    "title":"//textarea[@id='title']",
+    "autor":"//input[@id='author']",
+    "iframe":"//iframe[@id='ueditor_0']",
+    "content":"//body"
+}

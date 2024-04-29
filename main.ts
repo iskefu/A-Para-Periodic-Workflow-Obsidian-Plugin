@@ -1,137 +1,102 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+import { OpenInVSCode, moveToArchives } from 'func/FileMenu';
+import { addYamlAttributes, deleteYamlAttributes } from 'func/YAMLAddAndDel';
+import { getMessage } from 'i18n/i18n'; // 导入国际化函数，用于获取翻译后的消息
+import { Plugin } from 'obsidian'; // 导入 Obsidian 插件基类
+import { myEmitter } from 'src/EventEmitter';
+// 导入自定义模块
+import { RibbonRightClickMenu } from 'src/RibbonRightClickMenu';
+import { CreateView, VIEW } from 'src/VIEW';
+import { addCommand } from 'src/addCommand';
+import { SampleSettingTab } from 'src/settings';
+import { MyPluginSettings, DEFAULT_SETTINGS } from 'src/settings';
 
 export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+    settings: MyPluginSettings; // 插件设置，扩展自 MyPluginSettings 接口
 
-	async onload() {
-		await this.loadSettings();
+    async onload() {
+        // 当插件加载时执行的代码
+        await this.loadSettings(); // 加载插件设置
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+        this.addSettingTab(new SampleSettingTab(this.app, this)); // 添加设置标签页
+
+        this.registerView(VIEW, (leaf) => new CreateView(leaf, this.app, this.settings)); // 注册视图
+
+        // 在侧边栏添加一个图标，点击时执行提供的回调
+        const ribbonIconEl = this.addRibbonIcon('target', await getMessage('PARAPeriodicWorkflow'), async (evt: MouseEvent) => {
+			if (evt.button !== 0) { return; } // 仅允许主点击操作
+			this.app.workspace.detachLeavesOfType(VIEW); // 移除当前活动视图
+			await this.app.workspace.getRightLeaf(false)?.setViewState({
+				type: VIEW,
+				active: true,
+			}); // 设置视图状态为激活
+			this.app.workspace.revealLeaf( // 显示视图
+				this.app.workspace.getLeavesOfType(VIEW)[0]
+			);
 		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+        const ribbonIconClass = "a-para-periodic-workflow-ribbon-class"; // CSS 类
+        ribbonIconEl.addClass(ribbonIconClass); // 为图标添加 CSS 类
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
+        RibbonRightClickMenu(this.app, this.settings, `.${ribbonIconClass}`); // 为图标添加右键菜单
+
+        addCommand(this); // 注册命令
+
+        // 注册事件，为文件菜单添加一个项  OpenInVSCode
+        this.registerEvent(
+            this.app.workspace.on("file-menu", (menu, file) => {
+                menu.addItem((item) => {
+                    item
+                        .setTitle("Open in VSCode 👈")
+                        .setIcon("target")
+                        .onClick(async () => {
+                            OpenInVSCode(this.app, file); // 打开文件在 VSCode 中
+                        });
+                });
+				menu.addItem((item) => {
+                    item
+                        .setTitle(`Move To ${this.settings.archivePath} 👈`)
+						.setIcon("archive")
+						.onClick(async () => {
+							moveToArchives(this.app,this.settings, file); // 移动文件到归档文件夹中
+						});
+                });
+            })
+        );
+		
+		// 当文件打开时，监听事件，并根据设置执行自动添加或删除YAML属性的操作
+		this.app.workspace.on('file-open', async (event) => {
+			// 如果设置为自动添加YAML属性，则调用addYamlAttributes方法
+			if (this.settings.autoAddYaml){
+				addYamlAttributes(this.app, this.settings);
+			}
+			// 如果设置为自动删除YAML属性，则调用deleteYamlAttributes方法
+			if (this.settings.autoDelYaml){
+				deleteYamlAttributes(this.app, this.settings);
 			}
 		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
+		//监听VIEW的点击事件
+		myEmitterListener(this.app, this.settings);
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-	}
 
-	onunload() {
+    }
 
-	}
+    async onunload() {
+        // 当插件卸载时执行的代码
+        this.app.workspace.detachLeavesOfType(VIEW); // 清理视图
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
+        await this.saveData(this.settings); // 保存插件设置
+    }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
+    async loadSettings() {
+        // 加载插件设置的逻辑
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
+    async saveSettings() {
+        // 保存插件设置的逻辑
+        await this.saveData(this.settings);
+    }
 }

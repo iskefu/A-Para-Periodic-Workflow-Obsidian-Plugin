@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "a-para-periodic-workflow",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "This is a PARA and Periodic Workflow  plugin for Obsidian.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -12,6 +12,7 @@
 	"author": "",
 	"license": "MIT",
 	"devDependencies": {
+		"@types/fs-extra": "^11.0.4",
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
 		"@typescript-eslint/parser": "5.29.0",
@@ -20,5 +21,10 @@
 		"obsidian": "latest",
 		"tslib": "2.4.0",
 		"typescript": "4.7.4"
+	},
+	"dependencies": {
+		"fs-extra": "^11.2.0",
+		"gray-matter": "^4.0.3",
+		"playwright": "^1.43.1"
 	}
 }

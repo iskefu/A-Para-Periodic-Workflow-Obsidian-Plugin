@@ -2,10 +2,14 @@ import { App, SuggestModal, TAbstractFile } from "obsidian";
 import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";
+import matter from 'gray-matter';
 interface Platform {
     name: string;
   }
   const ALL_PLATFORMS = [
+    {
+      name: 'Publish To :    All Platforms',
+    },
     {
       name: "Publish To :    知乎",
     },
@@ -56,6 +60,9 @@ interface Platform {
 function publishToPlatform(app: App,platformName: string,file: TAbstractFile) {
     // 根据平台名称执行不同的发布逻辑
     switch (platformName) {
+      case 'Publish To :    All Platforms':
+        AllPlatformsAutoPublish(app,file);
+        break;
       case 'Publish To :    知乎':
         ZhihuAutoPublish(app,file);
         break;
@@ -247,16 +254,268 @@ export async function CSDNAutoPublish(app:App,file: TAbstractFile) {
     
 }
 export async function ZhihuAutoPublish(app:App,file: TAbstractFile) {
-    
+   //get pwd 
+   const valuePath = app.vault.adapter.getBasePath()
+   const plugins =  Object.values(this.app.plugins.manifests);
+   const myPluginDir = plugins.filter(plugin => plugin.id === 'a-para-periodic-workflow')[0].dir;
+   const currentFullPath = path.join(valuePath,myPluginDir);
+ 
+   // console.log(file.path);
+   const browser = await chromium.launch({ headless: false });
+   const context=await browser.newContext();
+ 
+   //load auth file
+   const authFile =currentFullPath+'/playwright/.auth/zhihu-mp-auth.json';
+   if (fs.existsSync(authFile)){
+     const cookies = JSON.parse(fs.readFileSync(authFile, 'utf8')).cookies;
+     await context.addCookies(cookies);
+   }  
+ 
+   const page = await context.newPage();
+ 
+   // const xpathFile=currentFullPath+'/playwright/xpath/'+'publish-to-weixin-mp.json';
+   // let xpath
+   // if (fs.existsSync(xpathFile)){
+   //  xpath = JSON.parse(fs.readFileSync(xpathFile, 'utf8'));
+   // }
+   await page.goto('https://www.zhihu.com');
+   await page.waitForLoadState('load')
+   //wait for login
+   const logined_element = 'button.GlobalWriteV2-topItem'
+   const isLoginIn=await page.isVisible(logined_element)
+   if (!isLoginIn){
+     try{
+      await page.locator('.Login-socialButtonGroup > button').first().click()
+      await page.waitForSelector(logined_element, {timeout: 120*1000})
+     }catch(e){
+       console.log('login timeout')
+       await browser.close()
+       return
+     }
+   }
+   context.storageState({path:authFile})
+   await page.getByRole('button', { name: '写文章' }).click();
+    await page.on('popup', async (page1) => {
+    await page1.waitForLoadState('load')
+    await page1.getByRole('button',{name:'文档'}).click();
+    await page1.locator('.Menu').getByRole('button',{name:'文档'}).click();
+ 
+    const fileFullPath = path.join(valuePath,file.path)
+    await page1.locator('form input[type="file"]').setInputFiles(fileFullPath)
+
+    const {name}= path.parse(file.path)
+    await page1.locator('textarea').fill(name);
+
+    await page1.getByRole('button', { name: '添加话题' }).click();
+    await page1.locator('input[aria-label="搜索话题"]').fill(name)
+    await page1.getByRole('button',{name:name}).click();
+
+    await page1.getByRole('button', { name: '发布' }).click();
+
+    });
+   
+ 
 }
 export async function JianshuAutoPublish(app:App,file: TAbstractFile) {
-    
+    //get pwd 
+   const valuePath = app.vault.adapter.getBasePath()
+   const plugins =  Object.values(this.app.plugins.manifests);
+   const myPluginDir = plugins.filter(plugin => plugin.id === 'a-para-periodic-workflow')[0].dir;
+   const currentFullPath = path.join(valuePath,myPluginDir);
+ 
+   // console.log(file.path);
+   const browser = await chromium.launch({ headless: false });
+   const context=await browser.newContext();
+ 
+   //load auth file
+   const authFile =currentFullPath+'/playwright/.auth/jianshu-mp-auth.json';
+   if (fs.existsSync(authFile)){
+     const cookies = JSON.parse(fs.readFileSync(authFile, 'utf8')).cookies;
+     await context.addCookies(cookies);
+   }  
+ 
+   const page = await context.newPage();
+ 
+   // const xpathFile=currentFullPath+'/playwright/xpath/'+'publish-to-weixin-mp.json';
+   // let xpath
+   // if (fs.existsSync(xpathFile)){
+   //  xpath = JSON.parse(fs.readFileSync(xpathFile, 'utf8'));
+   // }
+   await page.goto('https://www.jianshu.com');
+   await page.waitForLoadState('load')
+   //wait for login
+   const logined_element = 'div.user'
+   const isLoginIn=await page.isVisible(logined_element)
+   if (!isLoginIn){
+     try{
+      await page.locator('#sign_in').click()
+      await page.locator('a.weixin').click()
+      page.once('popup', async (page1) => {
+      await page1.waitForSelector(logined_element, {timeout: 120*1000})
+      })
+
+     }catch(e){
+       console.log('login timeout')
+       await browser.close()
+       return
+     }
+     page.on('popup', async (page1) => {
+      // await page1.waitForLoadState('load')
+      await page.locator('a.btn.write-btn').click();
+      page.on('popup', async (page2) => {
+        context.storageState({path:authFile})
+  
+        // await page2.waitForLoadState('load')
+        await page2.locator('div._1GsW5').click();
+        await page2.waitForTimeout(1000)
+        const {name}= path.parse(file.path)
+        await page2.locator('div > input[type="text"]').clear();
+        await page2.locator('div > input[type="text"]').fill(name);
+        await page2.waitForTimeout(1000)
+        const fileFullPath = path.join(valuePath,file.path)
+        const cont = fs.readFileSync(fileFullPath, 'utf8')
+        const { data, content } = matter(cont);
+        await page2.locator('div.kalamu-area').fill(content);
+        await page2.waitForTimeout(1000)
+        await page2.locator('a[data-action="publicize"]').click();
+        await page2.waitForTimeout(1000)
+        await browser.close()
+        })
+    })
+   }else{
+    await page.locator('a.btn.write-btn').click();
+      page.on('popup', async (page2) => {
+        context.storageState({path:authFile})
+  
+        // await page2.waitForLoadState('load')
+        await page2.locator('div._1GsW5').click();
+        await page2.waitForTimeout(1000)
+        const {name}= path.parse(file.path)
+        await page2.locator('div > input[type="text"]').clear();
+        await page2.locator('div > input[type="text"]').fill(name);
+        await page2.waitForTimeout(1000)
+        const fileFullPath = path.join(valuePath,file.path)
+        const cont = fs.readFileSync(fileFullPath, 'utf8')
+        const { data, content } = matter(cont);
+        await page2.locator('div.kalamu-area').fill(content);
+        await page2.waitForTimeout(1000)
+        await page2.locator('a[data-action="publicize"]').click();
+        await page2.waitForTimeout(1000)
+        await browser.close()
+        })
+   }
+
+
 }
 export async function JuejinAutoPublish(app:App,file: TAbstractFile) {
+        //get pwd 
+   const valuePath = app.vault.adapter.getBasePath()
+   const plugins =  Object.values(this.app.plugins.manifests);
+   const myPluginDir = plugins.filter(plugin => plugin.id === 'a-para-periodic-workflow')[0].dir;
+   const currentFullPath = path.join(valuePath,myPluginDir);
+ 
+   // console.log(file.path);
+   const browser = await chromium.launch({ headless: false });
+   const context=await browser.newContext();
+ 
+   //load auth file
+   const authFile =currentFullPath+'/playwright/.auth/juejin-mp-auth.json';
+   if (fs.existsSync(authFile)){
+     const cookies = JSON.parse(fs.readFileSync(authFile, 'utf8')).cookies;
+     await context.addCookies(cookies);
+   }  
+ 
+   const page = await context.newPage();
+ 
+   // const xpathFile=currentFullPath+'/playwright/xpath/'+'publish-to-weixin-mp.json';
+   // let xpath
+   // if (fs.existsSync(xpathFile)){
+   //  xpath = JSON.parse(fs.readFileSync(xpathFile, 'utf8'));
+   // }
+   await page.goto('https://www.juejin.cn');
+   await page.waitForLoadState('load')
+   //wait for login
+   const logined_element = 'div.avatar-wrapper'
+   const isLoginIn=await page.isVisible(logined_element)
+   if (!isLoginIn){
+     try{
+      await page.locator('button.login-button').click()
+      await page.locator('div.oauth-bg').nth(1).click()
+      await page.waitForSelector(logined_element, {timeout: 120*1000})
+     }catch(e){
+       console.log('login timeout')
+       await browser.close()
+       return
+     }
+   }
+   context.storageState({path:authFile})
+   await page.getByRole('button', { name: '创作者中心' }).click();
+   await page.waitForLoadState('load')
+   await page.getByRole('button', { name: '写文章' }).click();
+   page.on('popup', async (page1) => {
+    await page1.waitForLoadState('domcontentloaded')
+    await page1.locator('div.bytemd-toolbar-icon.bytemd-tippy.bytemd-tippy-right[bytemd-tippy-path="6"]' ).click();
+
+    const fileFullPath = path.join(valuePath,file.path)
+    await page1.locator('div.upload-area > input[type="file"]').setInputFiles(fileFullPath)
+
+    const {name}= path.parse(file.path)
+    await page1.locator('input.title-input').fill(name);
+    await page1.getByRole('button', { name: '发布' }).click();
+    await page1.locator('div.item').nth(4).click();
+    await page1.locator("div.byte-select__wrap").first().click();
+    await page1.getByRole('button', { name: 'GitHub' }).click();
+    await page1.locator('div.summary-textarea > textarea').fill('A'.repeat(100))
+    await page1.getByRole('button', { name: '确定并发布' }).click();
+    await browser.close()
+   })
     
 }
 export async function ToutiaoAutoPublish(app:App,file: TAbstractFile) {
-    
+        //get pwd 
+   const valuePath = app.vault.adapter.getBasePath()
+   const plugins =  Object.values(this.app.plugins.manifests);
+   const myPluginDir = plugins.filter(plugin => plugin.id === 'a-para-periodic-workflow')[0].dir;
+   const currentFullPath = path.join(valuePath,myPluginDir);
+ 
+   // console.log(file.path);
+   const browser = await chromium.launch({ headless: false });
+   const context=await browser.newContext();
+ 
+   //load auth file
+   const authFile =currentFullPath+'/playwright/.auth/toutiao-mp-auth.json';
+   if (fs.existsSync(authFile)){
+     const cookies = JSON.parse(fs.readFileSync(authFile, 'utf8')).cookies;
+     await context.addCookies(cookies);
+   }  
+ 
+   const page = await context.newPage();
+ 
+   // const xpathFile=currentFullPath+'/playwright/xpath/'+'publish-to-weixin-mp.json';
+   // let xpath
+   // if (fs.existsSync(xpathFile)){
+   //  xpath = JSON.parse(fs.readFileSync(xpathFile, 'utf8'));
+   // }
+   await page.goto('https://www.jianshu.com');
+   await page.waitForLoadState('load')
+   //wait for login
+   const logined_element = 'div.user'
+   const isLoginIn=await page.isVisible(logined_element)
+   if (!isLoginIn){
+     try{
+      await page.locator('#sign_in').click()
+      await page.locator('a.weixin').click()
+      page.once('popup', async (page1) => {
+      await page1.waitForSelector(logined_element, {timeout: 120*1000})
+      })
+
+     }catch(e){
+       console.log('login timeout')
+       await browser.close()
+       return
+     }
+    }
+   context.storageState({path:authFile})
 }
 export async function BaijiahaoAutoPublish(app:App,file: TAbstractFile) {
     
@@ -264,3 +523,12 @@ export async function BaijiahaoAutoPublish(app:App,file: TAbstractFile) {
 export async function BilibiliAutoPublish(app:App,file: TAbstractFile) {
     
 } 
+export async function AllPlatformsAutoPublish(app:App,file: TAbstractFile) {
+  await WXGZHAutoPublish(app,file)
+  await CSDNAutoPublish(app,file)
+  await ZhihuAutoPublish(app,file)
+  await JianshuAutoPublish(app,file)
+  await JuejinAutoPublish(app,file)
+  await BaijiahaoAutoPublish(app,file)
+  await BilibiliAutoPublish(app,file)
+}

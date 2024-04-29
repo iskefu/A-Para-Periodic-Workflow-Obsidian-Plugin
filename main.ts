@@ -1,12 +1,12 @@
 import { OpenInVSCode, moveToArchives } from 'func/FileMenu';
+import { Publish } from 'func/Publish';
 import { addYamlAttributes, deleteYamlAttributes } from 'func/YAMLAddAndDel';
 import { getMessage } from 'i18n/i18n'; // 导入国际化函数，用于获取翻译后的消息
 import { Plugin } from 'obsidian'; // 导入 Obsidian 插件基类
-import { myEmitter } from 'src/EventEmitter';
-// 导入自定义模块
 import { RibbonRightClickMenu } from 'src/RibbonRightClickMenu';
 import { CreateView, VIEW } from 'src/VIEW';
 import { addCommand } from 'src/addCommand';
+import { myEmitterListener } from 'src/myEmitterListener';
 import { SampleSettingTab } from 'src/settings';
 import { MyPluginSettings, DEFAULT_SETTINGS } from 'src/settings';
 
@@ -60,9 +60,17 @@ export default class MyPlugin extends Plugin {
 							moveToArchives(this.app,this.settings, file); // 移动文件到归档文件夹中
 						});
                 });
-            })
+                menu.addItem((item) => {
+                    item
+                        .setTitle(`Publish To ... 👈`)
+                        .setIcon("upload")
+                        .onClick(async () => {
+                            Publish(this.app, file);
+                        });
+                });
+
+            }) 
         );
-		
 		// 当文件打开时，监听事件，并根据设置执行自动添加或删除YAML属性的操作
 		this.app.workspace.on('file-open', async (event) => {
 			// 如果设置为自动添加YAML属性，则调用addYamlAttributes方法

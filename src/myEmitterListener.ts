@@ -36,10 +36,9 @@ export async function myEmitterListener(app: App, settings: MyPluginSettings) {
 		myEmitter.on('RestorePluginButtonClicked',()=>{
 			RestorePlugins(app);
 		});
-		WXGZHAutoPublish(app)
+
 		//文章自动发布面板
 		myEmitter.on("WeChatAutoPublishClicked",()=>{
-			WXGZHAutoPublish(app)
 		});
 		myEmitter.on("CSDNAutoPublishClicked",()=>{
 			

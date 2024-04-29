@@ -1,5 +1,6 @@
 interface Message {
     [key: string]: string;
+    publish_folder_not_supported: string;
     TranlatePlugins: string;
     SetTaskDateFormat: string;
     AddTask: string;
@@ -67,6 +68,7 @@ interface Message {
 
 }
 const langEn: Message = {
+    publish_folder_not_supported: 'Publish folder not supported',
     TranlatePlugins: 'Translate Plugins',
     AddDateWhenCreatedATask: 'Add Date When Created A Task',
     DeleteEmptyLine:'Delete  Empty Lines',
@@ -139,6 +141,7 @@ const langEn: Message = {
 }
 
 const langZh: Message = {
+    publish_folder_not_supported: '不支持发布文件夹',
     TranlatePlugins: '翻译插件',
     AddDateWhenCreatedATask: '在添加任务时自动添加日期',
     DeleteEmptyLine:'删除多余空行',

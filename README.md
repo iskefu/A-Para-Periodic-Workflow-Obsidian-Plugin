@@ -1,3 +1,4 @@
-- [X] settingsTab
-- [X] VIEW
-- [X] RIGHT CLICK
+- [X] init para folder and templates
+- [X] init periodic folder and templates
+- [ ] auto publish paper bjh pic
+  - [ ] 判断上传成功

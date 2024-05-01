@@ -1,3 +1,8 @@
+//UTF-8 //
+//Author：luckin cafe
+//date：2024-05-20
+//version：1.0.0
+//description：A-Para-Periodic-Workflow-Obsidian-Plugin 插件的主要代码
 import { OpenInVSCode, moveToArchives } from "func/FileMenu";
 import { Publish } from "func/Publish";
 import { addYamlAttributes, deleteYamlAttributes } from "func/YAMLAddAndDel";
@@ -9,19 +14,21 @@ import { addCommand } from "src/addCommand";
 import { myEmitterListener } from "src/myEmitterListener";
 import { SampleSettingTab } from "src/settings";
 import { MyPluginSettings, DEFAULT_SETTINGS } from "src/settings";
-
+// 插件类，扩展自 Plugin 类
 export default class MyPlugin extends Plugin {
     settings: MyPluginSettings; // 插件设置，扩展自 MyPluginSettings 接口
 
+    // 当插件加载时执行的逻辑
     async onload() {
-        await this.loadSettings();
+        await this.loadSettings(); // 加载插件设置
 
         this.addSettingTab(new SampleSettingTab(this.app, this)); // 添加设置标签页
 
+        // 注册视图
         this.registerView(
             VIEW,
             (leaf) => new CreateView(leaf, this.app, this.settings)
-        ); // 注册视图
+        );
 
         // 在侧边栏添加一个图标，点击时执行提供的回调
         const ribbonIconEl = this.addRibbonIcon(
@@ -92,15 +99,15 @@ export default class MyPlugin extends Plugin {
         myEmitterListener(this.app, this.settings);
     }
 
+    // 当插件卸载时执行的逻辑
     async onunload() {
-        // 当插件卸载时执行的代码
         this.app.workspace.detachLeavesOfType(VIEW); // 清理视图
 
         await this.saveData(this.settings); // 保存插件设置
     }
 
+    // 加载插件设置的逻辑
     async loadSettings() {
-        // 加载插件设置的逻辑
         this.settings = Object.assign(
             {},
             DEFAULT_SETTINGS,
@@ -108,8 +115,8 @@ export default class MyPlugin extends Plugin {
         );
     }
 
+    // 保存插件设置的逻辑
     async saveSettings() {
-        // 保存插件设置的逻辑
         await this.saveData(this.settings);
     }
 }

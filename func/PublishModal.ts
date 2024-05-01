@@ -353,9 +353,12 @@ export async function ZhihuAutoPublish(app: App, file: TAbstractFile) {
 		await page1.getByRole("button", { name: "添加话题" }).click();
 		await page1.locator('input[aria-label="搜索话题"]').fill(name);
 		await page1.getByRole("button", { name: name }).click();
-
+		await page1.waitForTimeout(3*1000);
 		await page1.getByRole("button", { name: "发布" }).click();
+		await page1.waitForTimeout(1000);
+		await browser.close();
 	});
+	
 }
 export async function JianshuAutoPublish(app: App, file: TAbstractFile) {
 	//get pwd
@@ -443,8 +446,11 @@ export async function JianshuAutoPublish(app: App, file: TAbstractFile) {
 			const { data, content } = matter(cont);
 			await page2.locator("div.kalamu-area").fill(content);
 			await page2.waitForTimeout(1000);
+			await page2.locator('a.fa.fa-floppy-o').click();
+			await page2.waitForLoadState("load", { timeout: 120 * 1000 });
+			await page2.locator('a[data-action="publicize"]').hover();
 			await page2.locator('a[data-action="publicize"]').click();
-			await page2.waitForTimeout(1000);
+			await page2.waitForSelector('a:has-text("发布成功")', { timeout: 120 * 1000 });
 			await browser.close();
 		});
 	}
@@ -521,6 +527,8 @@ export async function JuejinAutoPublish(app: App, file: TAbstractFile) {
 			.locator("div.summary-textarea > textarea")
 			.fill("A".repeat(100));
 		await page1.getByRole("button", { name: "确定并发布" }).click();
+		await page1.waitForTimeout(1000);
+		await page1.getByText('回到首页').click();
 		await browser.close();
 	});
 }
@@ -552,15 +560,12 @@ export async function ToutiaoAutoPublish(app: App, file: TAbstractFile) {
 	const isLoginIn = await page.isVisible(logined_element);
 	if (!isLoginIn) {
 		try {
-			await page.locator('.show-monitor a.login-button').click();
-		    await page.getByLabel('协议勾选框').click();
-			await page.getByRole('button', { name: '微信登录' }).click();
-			page.on('popup', async (page1) => {
+			await page.locator(".show-monitor a.login-button").click();
+			await page.getByLabel("协议勾选框").click();
+			await page.getByRole("button", { name: "微信登录" }).click();
+			page.on("popup", async (page1) => {
 				await page1.waitForSelector(logined_element);
-
-			});	
-			
-
+			});
 		} catch (e) {
 			console.log("login timeout");
 			await browser.close();
@@ -570,53 +575,75 @@ export async function ToutiaoAutoPublish(app: App, file: TAbstractFile) {
 			await page1.waitForSelector(logined_element);
 			await page1.waitForLoadState("load");
 			context.storageState({ path: authFile });
-			await page1.locator('a.publish-item').first().click();
-			page1.on('popup', async (page2) => {
+			await page1.locator("a.publish-item").first().click();
+			page1.on("popup", async (page2) => {
 				await page2.waitForLoadState("load");
-				await (await page2.waitForSelector('span.icon-wrap')).click();
+				await (await page2.waitForSelector("span.icon-wrap")).click();
 				const { name } = path.parse(file.path);
-				await page2.locator('textarea').fill(name);
-		
+				await page2.locator("textarea").fill(name);
+
 				const fileFullPath = path.join(valuePath, file.path);
 				const cont = fs.readFileSync(fileFullPath, "utf8");
 				const { data, content } = matter(cont);
-				await page2.locator('div.ProseMirror').fill(content);
-				
-				await page2.locator('label').filter({ hasText: '单标题' }).locator('div').click();
-				await page2.locator('label').filter({ hasText: '无封面' }).locator('div').click();
-				await page2.getByRole('button', { name: '预览并发布' }).click();
+				await page2.locator("div.ProseMirror").fill(content);
+
+				await page2
+					.locator("label")
+					.filter({ hasText: "单标题" })
+					.locator("div")
+					.click();
+				await page2
+					.locator("label")
+					.filter({ hasText: "无封面" })
+					.locator("div")
+					.click();
+				await page2.getByRole("button", { name: "预览并发布" }).click();
 				await page2.waitForTimeout(1000);
-				await page2.getByRole('button', { name: '确定发布' }).click();
-				await page2.locator('button').filter({ hasText: '获取验证码' }).click();
+				await page2.getByRole("button", { name: "确定发布" }).click();
+				await page2
+					.locator("button")
+					.filter({ hasText: "获取验证码" })
+					.click();
 				//手动输入验证码
-				await page2.waitForTimeout(60*1000);
+				await page2.waitForTimeout(60 * 1000);
 				await browser.close();
 			});
 		});
-	}else {
-	await page.locator('a.publish-item').first().click();
-	page.on('popup', async (page2) => {
-		await page2.waitForLoadState("load");
-		await (await page2.waitForSelector('span.icon-wrap')).click();
-		const { name } = path.parse(file.path);
-		await page2.locator('textarea').fill(name);
+	} else {
+		await page.locator("a.publish-item").first().click();
+		page.on("popup", async (page2) => {
+			await page2.waitForLoadState("load");
+			await (await page2.waitForSelector("span.icon-wrap")).click();
+			const { name } = path.parse(file.path);
+			await page2.locator("textarea").fill(name);
 
-		const fileFullPath = path.join(valuePath, file.path);
-		const cont = fs.readFileSync(fileFullPath, "utf8");
-		const { data, content } = matter(cont);
-		await page2.locator('div.ProseMirror').fill(content);
-		
-		await page2.locator('label').filter({ hasText: '单标题' }).locator('div').click();
-		await page2.locator('label').filter({ hasText: '无封面' }).locator('div').click();
-		await page2.getByRole('button', { name: '预览并发布' }).click();
-		await page2.waitForTimeout(1000);
-		await page2.getByRole('button', { name: '确定发布' }).click();
-	    await page2.locator('button').filter({ hasText: '获取验证码' }).click();
-		//手动输入验证码
-		await page2.waitForTimeout(60*1000);
-		await browser.close();
-	});
+			const fileFullPath = path.join(valuePath, file.path);
+			const cont = fs.readFileSync(fileFullPath, "utf8");
+			const { data, content } = matter(cont);
+			await page2.locator("div.ProseMirror").fill(content);
 
+			await page2
+				.locator("label")
+				.filter({ hasText: "单标题" })
+				.locator("div")
+				.click();
+			await page2
+				.locator("label")
+				.filter({ hasText: "无封面" })
+				.locator("div")
+				.click();
+			await page2.waitForTimeout(1000);
+			await page2.getByRole("button", { name: "预览并发布" }).click();
+			await page2.waitForTimeout(1000);
+			await page2.locator('div.publish-footer button').last().click();
+			await page2
+				.locator("button")
+				.filter({ hasText: "获取验证码" })
+				.click();
+			//手动输入验证码
+			await page2.waitForTimeout(120 * 1000);
+			// await browser.close();
+		});
 	}
 }
 export async function BaijiahaoAutoPublish(app: App, file: TAbstractFile) {
@@ -632,7 +659,8 @@ export async function BaijiahaoAutoPublish(app: App, file: TAbstractFile) {
 	const context = await browser.newContext();
 
 	//load auth file with cookie
-	const authFile = currentFullPath + "/playwright/.auth/baijiahao-mp-auth.json";
+	const authFile =
+		currentFullPath + "/playwright/.auth/baijiahao-mp-auth.json";
 	if (fs.existsSync(authFile)) {
 		const cookies = JSON.parse(fs.readFileSync(authFile, "utf8")).cookies;
 		await context.addCookies(cookies);
@@ -640,49 +668,50 @@ export async function BaijiahaoAutoPublish(app: App, file: TAbstractFile) {
 
 	const page = await context.newPage();
 
-	await page.goto('https://baijiahao.baidu.com/');
+	await page.goto("https://baijiahao.baidu.com/");
 	await page.waitForLoadState("load");
 	const logined_element = ".author";
 	const isLoginIn = await page.isVisible(logined_element);
 	if (!isLoginIn) {
 		try {
-			await page.locator('div.btnlogin--bI826').click();
-			await page.waitForSelector(logined_element, {timeout: 120*1000});
-
+			await page.locator("div.btnlogin--bI826").click();
+			await page.waitForSelector(logined_element, {
+				timeout: 120 * 1000,
+			});
 		} catch (e) {
-			console.error("login timeout",e);
+			console.error("login timeout", e);
 			await browser.close();
 			return;
 		}
 	}
 	context.storageState({ path: authFile });
-	await page.locator('div.nav-switch-btn').first().click();
-	await page.getByRole('button', { name: '发布' }).hover();
-	await page.locator('li.edit-news').click();
+	await page.locator("div.nav-switch-btn").first().click();
+	await page.getByRole("button", { name: "发布" }).hover();
+	await page.locator("li.edit-news").click();
 	await page.waitForLoadState("load");
 	const { name } = path.parse(file.path);
-	await page.locator('div.input-box textarea').fill(name);
+	await page.locator("div.input-box textarea").fill(name);
 	const fileFullPath = path.join(valuePath, file.path);
 
 	const cont = fs.readFileSync(fileFullPath, "utf8");
 	const { data, content } = matter(cont);
-	await page.frameLocator('#ueditor_0').locator('body').fill(content);
-	await page.locator('li.left').first().click();
-	await page.getByLabel('单图').click();
-	await page.locator('.coverUploaderView > .container').first().click();
-	await page.locator('div.cheetah-ui-pro-base-image').click();
-	await page.getByRole('button', { name: '确 认' }).click();
-	await page.waitForTimeout(5*1000);
-	await page.getByLabel('自动优化标题').click();
-	await page.waitForTimeout(5*1000);
-	await page.locator('div.op-btn-outter-content button').nth(1).click();
-	await page.waitForTimeout(5*1000);
+	await page.frameLocator("#ueditor_0").locator("body").fill(content);
+	await page.locator("li.left").first().click();
+	await page.getByLabel("单图").click();
+	await page.locator(".coverUploaderView > .container").first().click();
+	await page.locator("div.cheetah-ui-pro-base-image").click();
+	await page.getByRole("button", { name: "确 认" }).click();
+	await page.waitForTimeout(5 * 1000);
+	await page.getByLabel("自动优化标题").click();
+	await page.waitForTimeout(5 * 1000);
+	await page.locator("div.op-btn-outter-content button").nth(1).click();
+	await page.waitForTimeout(5 * 1000);
 	await browser.close();
 }
 export async function BilibiliAutoPublish(app: App, file: TAbstractFile) {
 	//get pwd
 	const valuePath = app.vault.adapter.getBasePath();
-	const plugins = Object.values(this.app.plugins.manifests);
+	const plugins: unknown = Object.values(this.app.plugins.manifests);
 	const myPluginDir = plugins.filter(
 		(plugin) => plugin.id === "a-para-periodic-workflow"
 	)[0].dir;
@@ -692,7 +721,8 @@ export async function BilibiliAutoPublish(app: App, file: TAbstractFile) {
 	const context = await browser.newContext();
 
 	//load auth file with cookie
-	const authFile = currentFullPath + "/playwright/.auth/bilibili-mp-auth.json";
+	const authFile =
+		currentFullPath + "/playwright/.auth/bilibili-mp-auth.json";
 	if (fs.existsSync(authFile)) {
 		const cookies = JSON.parse(fs.readFileSync(authFile, "utf8")).cookies;
 		await context.addCookies(cookies);
@@ -700,37 +730,57 @@ export async function BilibiliAutoPublish(app: App, file: TAbstractFile) {
 
 	const page = await context.newPage();
 
-	await page.goto('https://www.bilibili.com/');
+	await page.goto("https://www.bilibili.com/");
 	await page.waitForLoadState("load");
 	const logined_element = ".v-popover-wrap.header-avatar-wrap";
 	const isLoginIn = await page.isVisible(logined_element);
 	if (!isLoginIn) {
 		try {
-			await page.getByText('登录', { exact: true }).click();
-			await page.locator('div').filter({ hasText: /^微信登录$/ }).click();
-			await page.waitForSelector(logined_element, {timeout: 120*1000});
-
+			await page.getByText("登录", { exact: true }).click();
+			await page
+				.locator("div")
+				.filter({ hasText: /^微信登录$/ })
+				.click();
+			await page.waitForSelector(logined_element, {
+				timeout: 120 * 1000,
+			});
 		} catch (e) {
-			console.error("login timeout",e);
+			console.error("login timeout", e);
 			await browser.close();
 			return;
 		}
 	}
 	context.storageState({ path: authFile });
 	await page.waitForLoadState("load");
-	await page.getByRole('link', { name: '投稿', exact: true }).click();
-	page.on('popup', async (page1) => {
+	await page.getByRole("link", { name: "投稿", exact: true }).click();
+	page.on("popup", async (page1) => {
 		await page1.waitForLoadState("load");
-		await page1.locator('#video-up-app').getByText('专栏投稿').click();
+		await page1.locator("#video-up-app").getByText("专栏投稿").click();
 		const { name } = path.parse(file.path);
-		await page1.frameLocator('div.iframe-comp-container iframe').locator('textarea').fill(name);
+		await page1
+			.frameLocator("div.iframe-comp-container iframe")
+			.locator("textarea")
+			.fill(name);
 		const fileFullPath = path.join(valuePath, file.path);
 		const cont = fs.readFileSync(fileFullPath, "utf8");
 		const { data, content } = matter(cont);
-		await page1.frameLocator('div.iframe-comp-container iframe').locator('.ql-editor').fill(content);
-		await page1.frameLocator('div.iframe-comp-container iframe').getByRole('button', { name: '提交文章' }).click();
+		await page1
+			.frameLocator("div.iframe-comp-container iframe")
+			.locator(".ql-editor")
+			.fill(content);
+		await page1
+			.frameLocator("div.iframe-comp-container iframe")
+			.getByRole('checkbox', { name: '我声明此文章为原创' })
+			.click();
+		await page1
+			.frameLocator("div.iframe-comp-container iframe")
+			.locator('div.bre-modal__close')
+			.click();
+		await page1
+			.frameLocator("div.iframe-comp-container iframe")
+			.getByRole("button", { name: "提交文章" })
+			.click();
 	});
-
 }
 export async function AllPlatformsAutoPublish(app: App, file: TAbstractFile) {
 	await WXGZHAutoPublish(app, file);

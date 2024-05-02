@@ -6,14 +6,16 @@
 import { OpenInVSCode, moveToArchives } from "func/FileMenu";
 import { Publish } from "func/Publish";
 import { addYamlAttributes, deleteYamlAttributes } from "func/YAMLAddAndDel";
+import { test } from "gray-matter";
 import { getMessage } from "i18n/i18n"; // 导入国际化函数，用于获取翻译后的消息
-import { Plugin } from "obsidian"; // 导入 Obsidian 插件基类
+import { App, Plugin, TAbstractFile } from "obsidian"; // 导入 Obsidian 插件基类
 import { RibbonRightClickMenu } from "src/RibbonRightClickMenu";
 import { CreateView, VIEW } from "src/VIEW";
 import { addCommand } from "src/addCommand";
 import { myEmitterListener } from "src/myEmitterListener";
 import { SampleSettingTab } from "src/settings";
 import { MyPluginSettings, DEFAULT_SETTINGS } from "src/settings";
+import { t } from "test/test";
 // 插件类，扩展自 Plugin 类
 export default class MyPlugin extends Plugin {
     settings: MyPluginSettings; // 插件设置，扩展自 MyPluginSettings 接口
@@ -81,6 +83,13 @@ export default class MyPlugin extends Plugin {
                             Publish(this.app, file);
                         });
                 });
+                menu.addItem((item) => {
+                    item.setTitle(`test`)
+                        .setIcon("yaml")
+                        .onClick(async () => {
+                            t(this.app, this.settings, file); // 添加YAML属性       
+                        });
+                    });
             })
         );
         // 当文件打开时，监听事件，并根据设置执行自动添加或删除YAML属性的操作
@@ -93,6 +102,7 @@ export default class MyPlugin extends Plugin {
             if (this.settings.autoDelYaml) {
                 deleteYamlAttributes(this.app, this.settings);
             }
+            
         });
 
         //监听VIEW的点击事件
@@ -120,3 +130,4 @@ export default class MyPlugin extends Plugin {
         await this.saveData(this.settings);
     }
 }
+

@@ -24,8 +24,11 @@
     "typescript": "4.7.4"
   },
   "dependencies": {
+    "clipboardy": "^4.0.0",
     "fs-extra": "^11.2.0",
     "gray-matter": "^4.0.3",
-    "playwright": "^1.43.1"
+    "marked": "^12.0.2",
+    "playwright": "^1.43.1",
+    "utils": "^0.3.1"
   }
 }

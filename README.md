@@ -1,4 +1,6 @@
 - [X] init para folder and templates
 - [X] init periodic folder and templates
+- [X] move to archive   added to file menu
+- [X] open in vscode added to file menu
 - [ ] auto publish paper bjh pic
   - [ ] 判断上传成功

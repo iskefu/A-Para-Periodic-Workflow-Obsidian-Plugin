@@ -1,19 +1,22 @@
+import { spawn } from "child_process";
+import { App, TAbstractFile } from "obsidian";
+import path from "path";
+import { chromium } from "playwright";
+import { MyPluginSettings } from "src/settings";
 
-import { test, expect } from '@playwright/test';
+export async function t(
+	app: App,
+	settings: MyPluginSettings,
+	filePath: string
+) {
 
-test('has title', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
+	// const python = spawn("google-chrome-stable", ['--remote-debugging-port=9222']); // 替换为你的Python脚本路径
+	const browser = await chromium.connectOverCDP('http://localhost:9222')// Your Chrome websocket URL
+	  
+	  const context = await browser.newContext();
+	  const page = await context.newPage();
+	  await page.goto('https://www.example.com');
+	  
+	  await browser.close();
 
-  // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/Playwright/);
-});
-
-test('get started link', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
-
-  // Click the get started link.
-  await page.getByRole('link', { name: 'Get started' }).click();
-
-  // Expects page to have a heading with the name of Installation.
-  await expect(page.getByRole('heading', { name: 'Installation' })).toBeVisible();
-});
+}
